@@ -1,0 +1,25 @@
+import tensorflow as tf
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
+
+# Use a pre-trained CNN (MobileNetV2) for feature extraction and food recognition
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(1024, activation='relu')(x)
+predictions = Dense(101, activation='softmax')(x) # 101 food categories
+
+model = Model(inputs=base_model.input, outputs=predictions)
+
+for layer in base_model.layers:
+    layer.trainable = False
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Function to estimate calories based on recognized food item and portion size
+def estimate_calories(food_item, portion_weight_grams):
+    calorie_database = {'apple_pie': 237, 'hamburger': 295, 'pizza': 266} # kcal per 100g approx
+    calories_per_100g = calorie_database.get(food_item, 200)
+    total_calories = (calories_per_100g / 100) * portion_weight_grams
+    return total_calories
